@@ -1,0 +1,50 @@
+	СТАТИСТИКА
+Prec = TP/(TP+FP)
+Recall = TP/(TP+FN)
+F1 мера предсказаний PREC/RECALL
+	PANDAS
+pd.csv_read(sep =':') - считать csv
+data.describe() - описание средних и тд для всех столбцов
+data.dtypes - тип полей
+data.shape - форма таблицы
+data.groupby("Color").aggregate("Weight":"mean") - сгруппировать по цвету и для групп посчитать среднее веса
+data.groupby("Color").mean() - применит mean для всех возможных стобцов
+data.groupby(["Color","weight"], as_index=False) - сгруппирует по пересечениям, Flase чтобы не было уровневых индексов
+тогда каждая строка задается таплом индесов
+data.iloc[1:3, 4:7] - 1-3 строки, 4-7 - столбцы
+data.iloc[[1,4,7], [2,3,8]] - конкретные столбцы и строки
+data.index = ["asd", "zxc"...] - присвоение имен вместо индексов строк
+data.loc - аналог iloc только по именам столбцов и строк
+data.loc[data.gender == "female"] - отбор по условию
+data.loc[(condition1) & (condition2)] - для объединения условий
+pd.Series([1,2,3,4], index = ["asd","zxc","pdir","suka"]) - создаст серию
+pd.DataFrame({column_names:pdSeries}) - создание таблицы из серий
+data2 = data.rename(columns = {"old_names:new_names"}) - переименование имен столбцов
+data.quey("condition | condition2") - фильтр, для передачи переменной в условие экранировать @
+data.filter(like="score") - все столбцы включающие в название
+data["new_column"] = data["old_column1"]+data["old_column2"] - новая колонка равная суммее двух старых
+data = data.assign(weight_log = np.log(data.weight) - добавление колонки с логарифмом
+data.drop(["name"], axis = 1) - удаление столбца name
+pd.get_dummies(data) - заменяет все строковые объекты на числа
+	ВИЗУАЛИЗАЦИЯ
+data.weight.hist() - гистограмма по весу
+data.plot.scatter(x = "heigth", y ="weight") - плот с осями
+sns.lineplot(x, y, hue - группировка по чему, data)
+	СЛОЖНЫЕ ТАБЛИЦЫ
+data.pivot_table(index ="user_id", columns ="action", values="step_id", aggfunc="count", fill_value=0) 
+- создаст таблицу со столбцами юниками action, строками - user_id, значения будут step_id под функцией count(), fill value -заполнит пустые ячейки
+data.drop_duplicates(subset=["column names"]) - удалить дупликаты по переданным колонкам
+series.apply(func) - применит функцию ко всем элементам серии
+	МЕРДЖИ
+data.merge(other_data, on = "column1", how ="outer") - мердж таблицы по столбцу column1 с типом мерджа
+	ДЕРЕВЬЯ
+clf = tr.DecisionTreeClassifier(criterion = 'entropy' -по какому принципу работать, max_depth - глубина)
+создание дерева
+clf.fit(X, Y) - обучить
+уровень энтропии = sum(-pi*log2(pi)) pi - шанс определения к каждому классу
+энтропи разделения = sum(ni/N Ei) - n - элементов в группе, E - энтропия группы, N - всего элементов
+xtr, xtest, ytrain, ytest = train_test_split(x, y, test_size - какую часть под тест оставить, randomn_state - seed)
+pd.melt(data, id_vars - переменная которая пойдет в индекс, value_vars - переменные которые пойдут в один столбец, var_name - название столбца с разделителем из value_vars,
+value_name - навзвание столбца со значениями из объединенных столбцов)
+cross_val_score(fit, x, y, cv - сколько разбиений проводить) - cv раз отделит 1/cv часть для тестовых даных на оставшихся обучится и сравнит предикт на отделенных тестовых
+GridSearchCV
