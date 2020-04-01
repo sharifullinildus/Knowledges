@@ -1,0 +1,22 @@
+	MYSQL
+create database db;   создание базы данных
+use db;
+create table tab1     -  создание таблицы с первичным двойным ключом
+	{personid integer условие целостности,
+	name varchar(50),
+	data date,
+	primary key (name,data));
+describe tab1;   - инфо о таблице
+alter table tab add|modify|drop new_col тип [значение по умолч], список правил - модифицирование таблицы
+insert into tab1 (имена колонок) values (переменные элемента) - вставка элемента
+delete from tab1 where (условие) - удаление элементов по условию
+update tab1 set (колонка = чему равно) where (условие) - изменение элементов
+alter table tab1 add constraint newconst primary key (колонка) - задать первичный ключ
+tab1 foreign key(colname) references tab2(colname)[on delete ref_ops] (restrict,cascade...)
+ - теперь в tab1 colname привязано к значениям из tab2 по внешнему ключу,
+ при изменении в родительской будет применено ref_ops к дочерним значениям 
+contsraint newconst check(condition) - условия проверки 
+select all|distinct col1, col2, func(col3) newcol3 from tab1 where cond1 and cond2
+order by col2 limit 5 - выборка
+select avg(col1) from tab1 group by col2 having min(col3)=5 - аггрегирование групировки
+tab1 inner join tab2 on cond1 - соединение по условию

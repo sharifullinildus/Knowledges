@@ -1,0 +1,6 @@
+	#Compliling
+#include <stdio.h>
+
+	- must have 
+int main (void) {func body;
+		return 0; }
