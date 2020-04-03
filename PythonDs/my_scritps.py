@@ -1,7 +1,8 @@
 from sklearn import metrics as mt, model_selection as ms, preprocessing as pr
 from sklearn import tree as tr, neighbors as kn
-from sklearn
-import jupyter
+import pandas as pd
+import re
+
 import sys
 
 
@@ -67,3 +68,8 @@ class KNN(Grid):
         self.params = {'n_neighbors':n_neighbors, 'weights':weights,'metric':metric}
         self.estim = kn.KNeighborsClassifier()
         self.grid = ms.GridSearchCV(self.estim, param_grid=self.params, cv=cv, scoring=scorer, n_jobs=-1)
+
+print(123%100)
+class LGC(Grid):
+    def __init__(self, С=(0.0001,0.001,0.01,0.1,1,10,100,1000), ):
+        asd = 123
