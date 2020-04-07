@@ -69,7 +69,7 @@ class KNN(Grid):
         self.estim = kn.KNeighborsClassifier()
         self.grid = ms.GridSearchCV(self.estim, param_grid=self.params, cv=cv, scoring=scorer, n_jobs=-1)
 
-print(123%100)
+
 class LGC(Grid):
-    def __init__(self, С=(0.0001,0.001,0.01,0.1,1,10,100,1000), ):
+    def __init__(self, C=(0.0001,0.001,0.01,0.1,1,10,100,1000), penalty=('l1','l2','elasticnet'),):
         asd = 123

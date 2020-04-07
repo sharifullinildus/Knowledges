@@ -1,9 +1,6 @@
 import random
 buk = ('q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m')
 
-
-
-
 def hash1(str):
     has = 0
     p=1
@@ -36,7 +33,7 @@ def unics():
     for i in words:
         z+=1
         asd.add(hash1(i)%1000000)
-    print len(asd),len(words)
+    print(len(asd),len(words))
 
 def perestanovki():
     def RandomPermutation():
@@ -60,12 +57,7 @@ def perestanovki():
             perm[t1], perm[t2] = perm[t2], perm[t1]
         return perm
 
-    asd =0
-    zxc = 0
-    for i in range(10000):
-        asd += StupidPermutation()[7]
-        zxc += RandomPermutation()[7]
-
-    print asd, zxc
+    with open('gen_unics','w') as f:
+        pass
 
 unics()
