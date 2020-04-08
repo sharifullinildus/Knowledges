@@ -1,6 +1,7 @@
 import random
 buk = ('q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m')
 
+
 def hash1(str):
     has = 0
     p=1

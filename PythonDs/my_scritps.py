@@ -1,8 +1,8 @@
 from sklearn import metrics as mt, model_selection as ms, preprocessing as pr
-from sklearn import tree as tr, neighbors as kn
+from sklearn import tree as tr, neighbors as kn, linear_model as lm, datasets as data
 import pandas as pd
 import re
-
+ms.
 import sys
 
 
@@ -49,8 +49,10 @@ def estimators_compare(x, y, estiamtors, params, scaler=pr.StandardScaler, score
 
 
 class Grid:
-    def __init__(self):
+    def __init__(self,cv=10, scorer=mt.make_scorer(mt.f1_score)):
         self.fitted = False
+        self.cv=cv
+        self.scorer=scorer
 
     def fit(self, x, y):
         self.fitted = True
@@ -62,8 +64,7 @@ class Grid:
 
 
 class KNN(Grid):
-    def __init__(self, n_neighbors=(1,2,3,5,7,9,12,15),weights=('uniform','distance'),metric=('euclidean','manhattan'),
-                 cv=10, scorer=mt.make_scorer(mt.f1_score)):
+    def __init__(self, n_neighbors=(1,2,3,5,7,9,12,15),weights=('uniform','distance'),metric=('euclidean','manhattan')):
         Grid.__init__(self)
         self.params = {'n_neighbors':n_neighbors, 'weights':weights,'metric':metric}
         self.estim = kn.KNeighborsClassifier()
@@ -71,5 +72,18 @@ class KNN(Grid):
 
 
 class LGC(Grid):
-    def __init__(self, C=(0.0001,0.001,0.01,0.1,1,10,100,1000), penalty=('l1','l2','elasticnet'),):
-        asd = 123
+    def __init__(self, C=(0.0001,0.001,0.01,0.1,1,10,100,1000), type=1,max_iter=100,tol=1e-4):
+        Grid.__init__(self)
+        if type==1:
+            self.params1={'solver':('liblinear'),'penalty':('l2','l1','elasticnet')}
+        if type==2:
+            self.params1={'solver':('newton-cg','lbfgs', 'sag'), 'penalty':('l2')}
+            self.params2={'solver':('saga'),'penalty':('elsticnet','l1','l2')}
+        self.params = {'C':C}
+        self.estim = lm.LogisticRegression(max_iter=max_iter,tol=tol)
+        self.grid = ms.GridSearchCV(self.estim, param_grid=self.params, cv=cv, scoring=scorer, n_jobs=-1)
+
+gr = ms.GridSearchCV(lm.LogisticRegression(),param_grid={'C':(1,2),'penalty':('l1','l2','elasticent','none'),'solver':('newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga')})
+lgr=lm.LogisticRegression(solver='liblinear',penalty='l1')
+x=pd.DataFrame(data.load_iris().data)
+y=pd.Series(data.load_iris().target)
