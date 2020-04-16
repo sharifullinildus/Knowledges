@@ -61,4 +61,5 @@ def perestanovki():
     with open('gen_unics','w') as f:
         pass
 
-unics()
+asd = []
+asd[0]=2
