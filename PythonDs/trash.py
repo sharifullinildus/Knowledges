@@ -61,5 +61,25 @@ def perestanovki():
     with open('gen_unics','w') as f:
         pass
 
-asd = []
-asd[0]=2
+class asd:
+    def __init__(self):
+        self.z=2
+
+
+class asd2(asd):
+    def __init__(self):
+        asd.__init__(self)
+
+    class B:
+        def __init__(self):
+            pass
+
+    class C(B):
+        def __init__(self):
+            asd2.B.__init__(self)
+            print 'suka'
+        pass
+
+asd2.C()
+
+
