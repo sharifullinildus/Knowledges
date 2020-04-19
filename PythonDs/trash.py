@@ -77,9 +77,11 @@ class asd2(asd):
     class C(B):
         def __init__(self):
             asd2.B.__init__(self)
-            print 'suka'
         pass
 
-asd2.C()
+import re,requests
+asd = requests.get('https://scores24.live/ru/soccer/m-06-11-2019-bayer-04-leverkusen-atletico-madrid/odds').text
+#asd = asd.replace('\\','/')
+print(re.search('"type\":\"4.5',asd).group(0))
 
 

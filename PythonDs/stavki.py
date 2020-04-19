@@ -72,20 +72,7 @@ def footbal_match_stat(text):
 
 def football_match_coef(text):
     coefs = [None]*20
-    team1 = re.search('type\":\"w1(.*?)type\":\"w2',text)
-    maxval = 0
-    for i in re.finditer('value\":\"(.*?)\",\"bookmaker\":\"(.*?)\"',team1.group(1)):
-        if i.group(1)>maxval:
-            maxval = int(i.group(1))
-    text =text[:team1.pos]
-    coefs[0]=maxval
-    team1 = re.search('type\":\"w2(.*?)type\":\"x', text).group(1)
-    maxval = 0
-    for i in re.finditer('value\":\"(.*?)\",\"bookmaker\":\"(.*?)\"', team1):
-        if i.group(1) > maxval:
-            maxval = i.group(1)
-    text = text[:team1.pos]
-    coefs[0] = maxval
+    text.replace('\\','/')
 
 
 
@@ -109,5 +96,5 @@ def get_activ(text, counter, minut):
 
 match_header = ('data','country','liga','team1','team2','winner','nichya','overtime','gols1','gols2','kart1',\
                 'jelt1','jelt2', )
-asd = re.search('asd','dqwdasdqwe').group(0)
-print(asd)
+asd = r'{\"type\":\"x\",\"rates\":[{\"change\":\"0.055\",\"value\":\"3.24\",\"bookmaker\":\"1xbet\"},{\"change\":\"0.15\",\"value\":\"3.25\",\"bookmaker\":\"zenitbet\"},{\"change\":\"-0.1\",\"value\":\"3.20\",\"bookmaker\":\"marathonbet\"},{\"change\":\"-0.1\",\"va'
+print(re.search("type",asd).group(0))
