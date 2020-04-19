@@ -1,6 +1,6 @@
 # coding=utf-8
 #import pandas as pd
-import re, os, enum
+import re, os, enum, requests, pandas as pd
 
 def daily_football(date):
     try:
@@ -21,19 +21,71 @@ def daily_football(date):
             if status == 200:
                 text = req.text
                 # Парсим матч
-                head = re.findall('>(.*?)<',text)
-                teams = re.search(r'content="Результат матча (.*?) - (.*?) \d', text)  # 2 - страна, 3 - лига
-                teams = (teams.group(1),teams.group(2))
-                simple_stat = re.search('MatchCourseListing(.*?)Развернуть', text).group(1) + 'p5qQ'
-                simple_stat = re.findall('9 f_12-16(.*?)p5qQ', simple_stat)
-                activs=[0,0,0,0,0,0,0,0,0]
-                for stat in simple_stat:
-                    minut = stat[:stat.find('<')]
-                    get_activ(stat,activs, minut)
-                if re.search('СТАТИСТИКА МАТЧА',text):
-                    full_stat = re.search('СТАТИСТИКА МАТЧА(.*?)rse7X f_12-16_semibold',text).group(1)
-                    vladenie = re.findall()
+                footbal_match_stat(text)
 
+
+
+def footbal_match_stat(text):
+    head = re.findall('>(.*?)<', text)
+    teams = re.search(r'content="Результат матча (.*?) - (.*?) \d', text)  # 2 - страна, 3 - лига
+    teams = (teams.group(1), teams.group(2))
+    simple_stat = re.search('MatchCourseListing(.*?)Развернуть', text).group(1) + 'p5qQ'
+    simple_stat = re.findall('9 f_12-16(.*?)p5qQ', simple_stat)
+    activs = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for stat in simple_stat:
+        minut = stat[:stat.find('<')]
+        get_activ(stat, activs, minut)
+    if re.search('СТАТИСТИКА МАТЧА', text):
+        full_stat = [None] * 20
+        full_stat_text = re.search('СТАТИСТИКА МАТЧА(.*?)rse7X f_12-16_semibold', text).group(1)
+        vladenie = re.findall('>\d+?%<', full_stat_text)
+        if vladenie:
+            full_stat[0], full_stat[1] = vladenie[0], vladenie[1]
+        chisla = re.findall('>\d+?<', full_stat_text)
+        if chisla:
+            i = 0
+            if 'Удары в створ' in full_stat_text:
+                full_stat_text[2], full_stat_text[3] = chisla[i], chisla[1 + i]
+                full_stat_text[4], full_stat_text[5] = chisla[i + 2], chisla[3 + i]
+                i += 4
+            if 'Сейвы' in full_stat_text:
+                full_stat_text[6], full_stat_text[7] = chisla[i], chisla[1 + i]
+                i += 2
+            if 'Угловые' in full_stat_text:
+                full_stat_text[8], full_stat_text[9] = chisla[i], chisla[1 + i]
+                i += 2
+            if 'Оффсайды' in full_stat_text:
+                full_stat_text[10], full_stat_text[11] = chisla[i], chisla[1 + i]
+                i += 2
+            if 'Ауты' in full_stat_text:
+                full_stat_text[12], full_stat_text[13] = chisla[i], chisla[1 + i]
+                i += 2
+            if 'Удары от ворот' in full_stat_text:
+                full_stat_text[14], full_stat_text[15] = chisla[i], chisla[1 + i]
+                i += 2
+            if 'Штрафные' in full_stat_text:
+                full_stat_text[16], full_stat_text[17] = chisla[i], chisla[1 + i]
+                i += 2
+            if 'Фолы' in full_stat_text:
+                full_stat_text[18], full_stat_text[19] = chisla[i], chisla[1 + i]
+
+
+def football_match_coef(text):
+    coefs = [None]*20
+    team1 = re.search('type\":\"w1(.*?)type\":\"w2',text)
+    maxval = 0
+    for i in re.finditer('value\":\"(.*?)\",\"bookmaker\":\"(.*?)\"',team1.group(1)):
+        if i.group(1)>maxval:
+            maxval = int(i.group(1))
+    text =text[:team1.pos]
+    coefs[0]=maxval
+    team1 = re.search('type\":\"w2(.*?)type\":\"x', text).group(1)
+    maxval = 0
+    for i in re.finditer('value\":\"(.*?)\",\"bookmaker\":\"(.*?)\"', team1):
+        if i.group(1) > maxval:
+            maxval = i.group(1)
+    text = text[:team1.pos]
+    coefs[0] = maxval
 
 
 
@@ -57,5 +109,5 @@ def get_activ(text, counter, minut):
 
 match_header = ('data','country','liga','team1','team2','winner','nichya','overtime','gols1','gols2','kart1',\
                 'jelt1','jelt2', )
-asd = 'sadawqdq'
-print asd[:asd.find('3')]
+asd = re.search('asd','dqwdasdqwe').group(0)
+print(asd)
