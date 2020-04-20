@@ -1,7 +1,7 @@
 # coding=utf-8
-import pandas as pd
-import re, os, enum, requests, pandas as pd
-
+#import pandas as pd
+import re,requests
+from collections import namedtuple
 def daily_football(date):
     try:
         req = requests.get('https://scores24.live/ru/soccer/'+date)
@@ -25,56 +25,24 @@ def daily_football(date):
             if status == 200:
                 text = req.text
                 # Парсим матч
-                footbal_match_stat(text)
+                get_full_match(text)
 
 
-def footbal_match_stat(text):
-    header = [None]*50
-    head = re.findall('>(.*?)<', text)
-    teams = re.search(r'content="Результат матча (.*?) - (.*?) \d', text)  # 2 - страна, 3 - лига
-    teams = (teams.group(1), teams.group(2))
-    simple_stat = re.search('MatchCourseListing(.*?)Развернуть', text).group(1) + 'p5qQ'
-    simple_stat = re.findall('9 f_12-16(.*?)p5qQ', simple_stat)
-    header = []
-    for stat in simple_stat:
-        minut = stat[:stat.find('<')]
-        get_activ(stat, header, minut)
-    if re.search('СТАТИСТИКА МАТЧА', text):
-        full_stat = [None] * 20
-        full_stat_text = re.search('СТАТИСТИКА МАТЧА(.*?)rse7X f_12-16_semibold', text).group(1)
-        vladenie = re.findall('>\d+?%<', full_stat_text)
-        if vladenie:
-            full_stat[0], full_stat[1] = vladenie[0], vladenie[1]
-        chisla = re.findall('>\d+?<', full_stat_text)
-        if chisla:
-            i = 0
-            if 'Удары в створ' in full_stat_text:
-                full_stat_text[2], full_stat_text[3] = chisla[i], chisla[1 + i]
-                full_stat_text[4], full_stat_text[5] = chisla[i + 2], chisla[3 + i]
-                i += 4
-            if 'Сейвы' in full_stat_text:
-                full_stat_text[6], full_stat_text[7] = chisla[i], chisla[1 + i]
-                i += 2
-            if 'Угловые' in full_stat_text:
-                full_stat_text[8], full_stat_text[9] = chisla[i], chisla[1 + i]
-                i += 2
-            if 'Оффсайды' in full_stat_text:
-                full_stat_text[10], full_stat_text[11] = chisla[i], chisla[1 + i]
-                i += 2
-            if 'Ауты' in full_stat_text:
-                full_stat_text[12], full_stat_text[13] = chisla[i], chisla[1 + i]
-                i += 2
-            if 'Удары от ворот' in full_stat_text:
-                full_stat_text[14], full_stat_text[15] = chisla[i], chisla[1 + i]
-                i += 2
-            if 'Штрафные' in full_stat_text:
-                full_stat_text[16], full_stat_text[17] = chisla[i], chisla[1 + i]
-                i += 2
-            if 'Фолы' in full_stat_text:
-                full_stat_text[18], full_stat_text[19] = chisla[i], chisla[1 + i]
+def get_full_match(text):
+    header = [0]*50
+    teams = re.search(r'content="Результат матча (.*?) - (.*?) \d', text)
+    header[3],header[4]=teams.group(1),teams.group(2)
+    countr_leag = re.search(r'</svg></a><a href="/ru/soccer/.*?([А-Я].*?)<.*?([А-Я].*?)<',text)
+    header[1],header[2]=countr_leag.group(1),countr_leag.group(2)
+    get_activ(text,header,header[3])
+    if re.search('Статистика матча', text):
+        get_full_stat(text,header)
+    if re.search('has_odds..(.*?),',text).group(1)=='true':
+        get_match_coef(text,header)
+    return header
 
 
-def football_match_coef(text,header):
+def get_match_coef(text,header):
     text = re.search('\"odds\":{\"odds\":{\"slug(.*?)"standings\":null',text).group(0)
     text.replace('\\','/')
     p1 = re.search('type/":/"w1/(.*?)value/":/"(.*?)/"',text)
@@ -119,13 +87,12 @@ def football_match_coef(text,header):
 
 
 
-def full_stat(text,header):
-    full_stat = [None] * 20
-    full_stat_text = re.search('СТАТИСТИКА МАТЧА(.*?)rse7X f_12-16_semibold', text).group(1)
-    vladenie = re.findall('>\d+?%<', full_stat_text)
+def get_full_stat(text,header):
+    full_stat_text = re.search('Статистика матча(.*?)rse7X f_12-16_semibold', text).group(1)
+    vladenie = re.findall('>(\d+?)%<', full_stat_text)
     if vladenie:
         header[17],header[18] = vladenie[0], vladenie[1]
-    chisla = re.findall('>\d+?<', full_stat_text)
+    chisla = re.findall('>(\d+?)<', full_stat_text)
     if chisla:
         i = 0
         if 'Удары в створ' in full_stat_text:
@@ -154,27 +121,30 @@ def full_stat(text,header):
             header[35],header[36] = chisla[i], chisla[1 + i]
 
 
-def get_activ(text, header, minut):
-    gol = '_2dgzX f_11-12_bold'
-    jeltcard = '_1SxFz ZQq'
-    zamena = 'xMKF- ZQq1q'
-    if int(minut[:minut.find('+')]<46):
-        i = 0
-    elif '90+' in minut:
-        i=2
-    else:
-        i=1
-    if gol in text:
-        header[8+i]+=1
-    elif jeltcard in text:
-        header[i + 11] += 1
-    elif zamena in text:
-        header[i + 14] += 1
+def get_activ(text,header,team1):
+    simple_stat = re.search('MatchCourseListing(.*?)Развернуть', text).group(1)+'p5qQ'
+    gol1 = re.search('1-й тайм.*?(\d):(\d)',simple_stat)
+    gol2 = re.search('Основное время.*?(\d+?):(\d+?)',simple_stat)
+    gol3 = re.search('Матч завершён со с.*?(\d+?):(\d+?)',simple_stat)
+    jelt1,jelt2=0,0
+    for i in re.findall('9 f_12-16">(.*?)p5qQ', simple_stat):
+        if '.svg#card' in i:
+            if team1 in i:
+                jelt1+=1
+            else:
+                jelt2+=1
+    header[5],header[8]=gol1.group(1),gol1.group(2)
+    header[6], header[9] = gol2.group(1), gol2.group(2)
+    header[7], header[10] = gol3.group(1), gol3.group(2)
+    header[11],header[12] = jelt1,jelt2
 
 
-match_header = ('data','country','liga','team1','team2','winner','nichya','nichya_os','gols1','gols2','gols3','kart1',
-                'kart2','kart3','jelt1','jelt2','jelt3','vladenie1','vladenie2','vstvor1','mimo1','vstvor2','mimo2','save1','save2',
+
+match_header = namedtuple('match',['data','country','liga','team1','team2','gols1t1','gols2t1','gols3t1','gols1t2','gols2t2',
+                          'gols3t2','kart1','kart2','vladenie1','vstvor1','mimo1','vstvor2','mimo2','save1','save2',
                 'uglov1','uglov2','offsaid1','offsaid2','aut1','aut2','otvorot1','otvorot2','shtraf1','shtraf2','fol1',
-                'fol2','p1','X','p2','t>1','t>2','t>3','t>4','t>5','t>6','oz','x1','12','x2')
+                'fol2','p1','X','p2','tb1','tb2','tb3','tb4','tb5','tb6','oz','x1','x12','x2'])
 
-print match_header[37]
+#text =requests.get('https://scores24.live/ru/soccer/m-05-11-2019-fc-barcelona-sk-slavia-prague').text
+asd = match_header(*([0]*45))
+print(asd.match)
