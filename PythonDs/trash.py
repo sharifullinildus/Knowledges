@@ -1,5 +1,5 @@
 # coding=utf-8
-import random
+import random,os
 buk = ('q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m')
 
 
@@ -80,9 +80,4 @@ class asd2(asd):
             asd2.B.__init__(self)
         pass
 
-import re,requests
-#a#sd = requests.get('https://scores24.live/ru/soccer/m-06-11-2019-bayer-04-leverkusen-atletico-madrid/odds').text
-asd = 'asd/zxca'
-print(re.search('d/z',asd).group(0))
-
-
+print('asd{}'.format(1))
