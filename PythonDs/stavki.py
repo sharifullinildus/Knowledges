@@ -1,8 +1,8 @@
 # coding=utf-8
-#import pandas as pd
-import re, requests, os, datetime, calendar, json
+import pandas as pd
+import re, requests, os, datetime, calendar, json, sys
 from namedlist import namedlist
-
+has=namedlist('asd','asdcz')
 match_header = namedlist('match',['data','country','liga','team1','team2','gols1t1','gols2t1','gols3t1','gols1t2','gols2t2',
                           'gols3t2','kart1','kart2','vladenie1','vstvor1','mimo1','vstvor2','mimo2','save1','save2',
                 'uglov1','uglov2','offsaid1','offsaid2','aut1','aut2','otvorot1','otvorot2','shtraf1','shtraf2','fol1',
@@ -14,7 +14,7 @@ def go_stavki_football_forward(iter):
         data = json.load(f)
         dates = data[0]
         forward = datetime.date(dates[0],dates[1],dates[2])
-    for i in range(iter):
+    for _ in range(iter):
         forward=forward+datetime.timedelta(days=1)
         get_daily_football(forward)
     data[0]=[forward.year,forward.month,forward.day]
@@ -27,7 +27,7 @@ def go_stavki_football_back(iter):
         data = json.load(f)
         dates = data[1]
         forward = datetime.date(dates[0],dates[1],dates[2])
-    for i in range(iter):
+    for _ in range(iter):
         forward=forward-datetime.timedelta(days=1)
         get_daily_football(forward)
     data[1]=[forward.year,forward.month,forward.day]
@@ -40,7 +40,11 @@ def get_daily_football(date):
         day = '0' + str(date.day)
     else:
         day = date.day
-    ref ='https://scores24.live/ru/soccer/'+'{}-{}-{}'.format(date.year,date.month,day)
+    if date.month < 10:
+        month = '0' + str(date.month)
+    else:
+        month = date.month
+    ref ='https://scores24.live/en/soccer/'+'{}-{}-{}'.format(date.year,month,day)
     try:
         req = requests.get(ref)
         status = req.status_code
@@ -51,10 +55,10 @@ def get_daily_football(date):
     if status == 200:
         # Парсим день
         text =req.text.replace('\\','/')
-        matches = re.findall(r'{/"slug/":/"(.*?)/"',text)
+        matches = re.findall(r'{/"slug/":/"(\d\d.*?)/"',text)
         for match in matches:
             try:
-                req = requests.get('https://scores24.live/ru/soccer/m-'+match)
+                req = requests.get('https://scores24.live/en/soccer/m-'+match)
                 status = req.status_code
             except:
                 with open(os.path.abspath('../../')+'stavki_data/match_faults.txt','a') as f:
@@ -62,7 +66,7 @@ def get_daily_football(date):
                     return
             if status == 200:
                 # Парсим матч
-                header = get_full_match(req.text)
+                header = get_full_match(req.text, date)
                 put_match_in_fail(header)
                 revert_header(header)
                 put_match_in_fail(header)
@@ -71,7 +75,7 @@ def get_daily_football(date):
                     f.write('https://scores24.live' + match + '\n')
     else:
         with open(os.path.abspath('../../')+'stavki_data/fault_days.txt','a') as f:
-            f.write('https://scores24.live/ru/soccer/' + '{}-{}-{}'.format(date.year, date.month, date.day) + '\n')
+            f.write('https://scores24.live/en/soccer/' + '{}-{}-{}'.format(date.year, date.month, date.day) + '\n')
 
 
 def put_match_in_fail(header):
@@ -99,7 +103,8 @@ def revert_header(header):
     header.x2,header.x1=header.x1,header.x2
     header.mimo2,header.mimo1=header.mimo1,header.mimo2
     header.vstvor2,header.vstvor1=header.vstvor1,header.vstvor2
-    header.vladenie1 = str(100-int(header.vladenie1))
+    if header.vladenie1!=None:
+        header.vladenie1 = str(100-int(header.vladenie1))
     header.uglov2,header.uglov2=header.uglov1,header.uglov2
     header.p2,header.p1=header.p2,header.p2
     header.shtraf2,header.shtraf1=header.shtraf1,header.shtraf2
@@ -108,17 +113,17 @@ def revert_header(header):
     header.otvorot2,header.otvorot1 = header.otvorot1,header.otvorot2
 
 
-def get_full_match(text):
+def get_full_match(text,date):
     ref = re.search('content="(http.*?)"/',text).group(1)
     header = match_header(*[None]*46)
     header.ref = ref
-    header.data = re.search('m-(.*?)-\D',text).group(1)
-    teams = re.search(r'Результат матча (.*?) - (.*?) \d', text)
+    header.data = date
+    teams = re.search(r'Match results for (.*?) - (.*?) \d', text)
     header.team1,header.team2 = teams.group(1),teams.group(2)
-    countr_leag = re.search(r'</svg></a><a href="/ru/soccer/.*?([А-Я].*?)<.*?([А-Я].*?)<',text)
+    countr_leag = re.search(r'</svg></a><a href="/en/soccer/.*?>(.*?)<.*?12-16">(.*?)<',text)
     header.country,header.liga=countr_leag.group(1),countr_leag.group(2).strip()
     get_stat(text,header,header.team1)
-    if re.search('Статистика матча', text):
+    if re.search('Match statistic', text):
        get_full_stat(text,header)
     if re.search('has_odds...(.*?),',text).group(1)=='true':
         text = requests.get(ref+'/odds').text
@@ -172,44 +177,44 @@ def get_match_coef(text,header):
 
 
 def get_full_stat(text,header):
-    full_stat_text = re.search('Статистика матча(.*?)rse7X f_12-16_semibold', text).group(1)
+    full_stat_text = re.search('Match statistic(.*?)rse7X f_12-16_semibold', text).group(1)
     vladenie = re.findall('>(\d+?)%<', full_stat_text)
     i = 0
     if vladenie:
         header.vladenie1 = vladenie[0]
     chisla = re.findall('>(\d+?)<', full_stat_text)
     if chisla:
-        if 'Удары в створ' in full_stat_text:
+        if 'Shots on goal' in full_stat_text:
             header.vstvor1, header.mimo1 = chisla[i], chisla[1 + i]
             header.vstvor2, header.mimo2 = chisla[i + 2], chisla[3 + i]
             i += 4
-        if 'Сейвы' in full_stat_text:
+        if 'oalkeeper saves' in full_stat_text:
             header.save1, header.save2 = chisla[i], chisla[1 + i]
             i += 2
-        if 'Угловые' in full_stat_text:
+        if 'Corners' in full_stat_text:
             header.uglov1, header.uglov2 = chisla[i], chisla[1 + i]
             i += 2
-        if 'Оффсайды' in full_stat_text:
+        if 'Offsides' in full_stat_text:
             header.offsaid1, header.offsaid2 = chisla[i], chisla[1 + i]
             i += 2
-        if 'Ауты' in full_stat_text:
+        if 'Throw in' in full_stat_text:
             header.aut1, header.aut2 = chisla[i], chisla[1 + i]
             i += 2
-        if 'Удары от ворот' in full_stat_text:
+        if 'oalkeeper kicks' in full_stat_text:
             header.otvorot1, header.otvorot2 = chisla[i], chisla[1 + i]
             i += 2
-        if 'Штрафные' in full_stat_text:
+        if 'Free kicks' in full_stat_text:
             header.shtraf1, header.shtraf2 = chisla[i], chisla[1 + i]
             i += 2
-        if 'Фолы' in full_stat_text:
+        if 'Fouls' in full_stat_text:
             header.fol1, header.fol2 = chisla[i], chisla[1 + i]
 
 
 def get_stat(text,header,team1):
-    simple_stat = re.search('MatchCourseListing(.*?)Развернуть', text).group(1)+'p5qQ'
-    gol1 = re.search('1-й тайм.*?(\d):(\d)',simple_stat)
-    gol2 = re.search('Основное время.*?(\d+?):(\d+?)',simple_stat)
-    gol3 = re.search('Матч завершён со с.*?(\d+?):(\d+?)',simple_stat)
+    simple_stat = re.search('MatchCourseListing(.*?)Open</button>', text).group(1)+'p5qQ'
+    gol1 = re.search('1st half.*?(\d):(\d)',simple_stat)
+    gol2 = re.search('Full time.*?(\d+?):(\d+?)',simple_stat)
+    gol3 = re.search('Match ended with score.*?(\d+?):(\d+?)',simple_stat)
     jelt1,jelt2=0,0
     for i in re.findall('9 f_12-16">(.*?)p5qQ', simple_stat):
         if '.svg#card' in i:
@@ -222,6 +227,3 @@ def get_stat(text,header,team1):
     header.gols3t1, header.gols3t2 = gol3.group(1), gol3.group(2)
     header.kart1, header.kart2 = str(jelt1), str(jelt2)
 
-with open(os.path.abspath('../../')+'stavki_data/stavki_days.txt','w') as f:
-    json.dump([[2019,10,3],[1,2,3]],f)
-go_stavki_football_forward(1)

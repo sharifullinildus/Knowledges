@@ -1,4 +1,4 @@
-from sklearn import metrics as mt, model_selection as ms, preprocessing as pr, svm
+'''from sklearn import metrics as mt, model_selection as ms, preprocessing as pr, svm
 from sklearn import tree as tr, neighbors as kn, linear_model as lm, datasets as data
 import pandas as pd
 import re
@@ -96,3 +96,5 @@ class BinaryClassification(Classification):
             self.params = {'C':C,'kernel':kernel}
             self.estim = svm.SVC()
 
+'''
+print ('фыв')
