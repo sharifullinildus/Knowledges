@@ -2,11 +2,11 @@
 import pandas as pd
 import re, requests, os, datetime, calendar, json, sys
 from namedlist import namedlist
-has=namedlist('asd','asdcz')
+
 match_header = namedlist('match',['data','country','liga','team1','team2','gols1t1','gols2t1','gols3t1','gols1t2','gols2t2',
                           'gols3t2','kart1','kart2','vladenie1','vstvor1','mimo1','vstvor2','mimo2','save1','save2',
                 'uglov1','uglov2','offsaid1','offsaid2','aut1','aut2','otvorot1','otvorot2','shtraf1','shtraf2','fol1',
-                'fol2','p1','X','p2','tb1','tb2','tb3','tb4','tb5','tb6','oz','x1','x12','x2','ref'])
+                'fol2','p1','X','p2','tb1','tb2','tb3','tb4','oz','x1','x12','x2','ref','type'])
 
 
 def go_stavki_football_forward(iter):
@@ -115,19 +115,21 @@ def revert_header(header):
 
 def get_full_match(text,date):
     ref = re.search('content="(http.*?)"/',text).group(1)
-    header = match_header(*[None]*46)
+    header = match_header(*[0]*45)
     header.ref = ref
     header.data = date
+    header.type = 1
     teams = re.search(r'Match results for (.*?) - (.*?) \d', text)
     header.team1,header.team2 = teams.group(1),teams.group(2)
     countr_leag = re.search(r'</svg></a><a href="/en/soccer/.*?>(.*?)<.*?12-16">(.*?)<',text)
     header.country,header.liga=countr_leag.group(1),countr_leag.group(2).strip()
-    get_stat(text,header,header.team1)
-    if re.search('Match statistic', text):
-       get_full_stat(text,header)
+    get_stat(text,header,re.findall('-(\w*)',ref)[-2])
     if re.search('has_odds...(.*?),',text).group(1)=='true':
+        header.type = 2
         text = requests.get(ref+'/odds').text
         get_match_coef(text,header)
+    if re.search('Match statistic', text):
+       get_full_stat(text,header)
     return header
 
 
@@ -143,7 +145,7 @@ def get_match_coef(text,header):
     p2 = re.search(r'"type/":/"w2/(.*?)value/":/"(.*?)/"', text)
     if p2:
         header.p2= p2.group(2)
-    t1 = re.search(r'"type/":/"1/(.*?)value/":/"(.*?)/"', text)
+    t1 = re.search(r'"type/":/"1.5/(.*?)value/":/"(.*?)/"', text)
     if t1:
         header.tb1 = t1.group(2)
     t2 = re.search(r'"type/":/"2/(.*?)value/":/"(.*?)/"', text)
@@ -155,12 +157,6 @@ def get_match_coef(text,header):
     t4 = re.search(r'"type/":/"4/(.*?)value/":/"(.*?)/"', text)
     if t4:
         header.tb4 = t4.group(2)
-    t5 = re.search(r'"type/":/"5/(.*?)value/":/"(.*?)/"', text)
-    if t5:
-        header.tb5 = t5.group(2)
-    t6 = re.search(r'"type/":/"6/(.*?)value/":/"(.*?)/"', text)
-    if t6:
-        header.tb6 = t6.group(2)
     oz = re.search(r'"type/":/"yes/(.*?)value/":/"(.*?)/"', text)
     if oz:
         header.oz = oz.group(2)
@@ -182,6 +178,7 @@ def get_full_stat(text,header):
     i = 0
     if vladenie:
         header.vladenie1 = vladenie[0]
+    header.type += 2
     chisla = re.findall('>(\d+?)<', full_stat_text)
     if chisla:
         if 'Shots on goal' in full_stat_text:
@@ -212,18 +209,44 @@ def get_full_stat(text,header):
 
 def get_stat(text,header,team1):
     simple_stat = re.search('MatchCourseListing(.*?)Open</button>', text).group(1)+'p5qQ'
-    gol1 = re.search('1st half.*?(\d):(\d)',simple_stat)
-    gol2 = re.search('Full time.*?(\d+?):(\d+?)',simple_stat)
-    gol3 = re.search('Match ended with score.*?(\d+?):(\d+?)',simple_stat)
     jelt1,jelt2=0,0
-    for i in re.findall('9 f_12-16">(.*?)p5qQ', simple_stat):
-        if '.svg#card' in i:
-            if team1 in i:
+    gol11,gol12,gol21,gol22=0,0,0,0
+    for i in re.findall('9 f_12-16">(\d*)(.*?)p5qQ', simple_stat):
+        if '.svg#card' in i[1]:
+            if team1 in i[1]:
                 jelt1+=1
             else:
                 jelt2+=1
-    header.gols1t1, header.gols1t2 = gol1.group(1), gol1.group(2)
-    header.gols2t1, header.gols2t2 = gol2.group(1), gol2.group(2)
+        if '.svg#soccer' in i[1]:
+            if team1 not in i[1]:
+                if int(i[0])<46:
+                    gol11+=1
+                else:
+                    gol21+=1
+            else:
+                if int(i[0])<46:
+                    gol12+=1
+                else:
+                    gol22+=1
+    gol3 = re.search('Match ended with score.*?(\d+?):(\d+?)', simple_stat)
+    gol2 = re.search('Full time.*?(\d+?):(\d+?)', simple_stat)
+    gol1 = re.search('1st half.*?(\d):(\d)', simple_stat[:gol2.start(0)])
+    if gol1:
+        header.gols1t1, header.gols1t2 = gol1.group(1), gol1.group(2)
+        header.gols2t1, header.gols2t2 = gol2.group(1), gol2.group(2)
+    elif re.findall('9 f_12-16">(\d*)(.*?)p5qQ', simple_stat)!=[]:
+        header.gols1t1, header.gols1t2 = str(gol11),str(gol12)
+        header.gols2t1, header.gols2t2 = str(gol21),str(gol22)
+    else:
+        header.gols1t1, header.gols1t2 =str(int(gol3.group(1))//2), str(int(gol3.group(2))//2)
+        header.gols2t1, header.gols2t2 = gol3.group(1), gol3.group(2)
     header.gols3t1, header.gols3t2 = gol3.group(1), gol3.group(2)
     header.kart1, header.kart2 = str(jelt1), str(jelt2)
+
+def generate_scheme1_df():
+    table = pd.DataFrame(columns=[])
+    for _,_, teams in os.walk('asd'):
+        for team in teams:
+            with open(team, 'r') as f:
+                pass
 
