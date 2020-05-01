@@ -124,3 +124,4 @@ class BinarEstimators:
             print(estimator.name, ' - ', estimator.score)
 
     estimators = {i[0]:i[1]() for i in BinaryClassification.__dict__.items() if 'C_B' in i[0]}
+

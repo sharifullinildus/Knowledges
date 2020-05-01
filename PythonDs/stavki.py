@@ -2,9 +2,9 @@
 import pandas as pd
 import sys
 sys.path.append(r'C:\Users\qwerty\AppData\Local\Programs\Python\Python37\Lib\site-packages')
-import re, requests, os, datetime, calendar, json
+import re, requests, os, datetime
 from namedlist import namedlist
-
+import multiprocessing
 
 def eazy_add(self,entry,name):
     entry=pd.Series(entry,index=list(self.columns),name=name)
@@ -29,7 +29,7 @@ match_header_names =['data','id','country','liga','team1','team2','ref','type']
 
 simple_stat = ['gols1t1','gols2t1','gols1t2','gols2t2',
                           'kart1','kart2']
-coefs_names = ['p1','p2','tb1','tb2','oz','x1']
+coefs_names = ['p1','p2','tb1','tb2','oz','x1','x2']
 
 stat_names = ['vladenie1','vstvor1','mimo1','vstvor2','mimo2','save1','save2',
                 'uglov1','uglov2','offsaid1','offsaid2','aut1','aut2','otvorot1','otvorot2','shtraf1','shtraf2','fol1',
@@ -54,7 +54,7 @@ types=[type1_data,type2_data,type3_data,type4_data]
 
 match_ability = namedlist('prognoz',ability_params_names)
 ability_params = namedlist('ability',match_prognoz_data_names)
-match_header = namedlist('match',match_header_names+stat_names+coefs_names)
+match_header = namedlist('match',full_header)
 
 
 def get_data_by_type(data, type):
@@ -62,19 +62,27 @@ def get_data_by_type(data, type):
 
 
 def go_stavki_football_forward(dates,iter,fail):
-    with open(fail,'r') as f:
-        forward = datetime.date(dates[0],dates[1],dates[2])
-        for _ in range(iter):
-            forward=forward+datetime.timedelta(days=1)
-            get_daily_football(forward,f)
+    fail = os.path.abspath('../../') + 'stavki_data/' + fail
+    with open(fail,'w') as f:
+        with open(fail+'rev', 'w') as f2:
+            f.write(','.join(full_header)+'\n')
+            f2.write(','.join(full_header)+'\n')
+            forward = dates
+            for _ in range(iter):
+                forward=forward+datetime.timedelta(days=1)
+                get_daily_football(forward,f,f2)
 
 
 def go_stavki_football_back(dates,iter,fail):
-    with open(fail,'r') as f:
-        forward = datetime.date(dates[0],dates[1],dates[2])
-        for _ in range(iter):
-            forward=forward-datetime.timedelta(days=1)
-            get_daily_football(forward,f)
+    fail=os.path.abspath('../../')+'stavki_data/'+fail
+    with open(fail,'w') as f:
+        with open(fail+'rev', 'w') as f2:
+            f.write(','.join(full_header) + '\n')
+            f2.write(','.join(full_header) + '\n')
+            forward = dates
+            for _ in range(iter):
+                forward=forward-datetime.timedelta(days=1)
+                get_daily_football(forward,f,f2)
 
 
 def get_better_type(t1,t2):
@@ -132,9 +140,11 @@ def get_daily_football(date,fail,fail2):
                 if re.search('Cancelled', text):
                     continue
                 header = get_full_match(text, date)
-                fail.write(','.join(header)+'\n')
+                header1=[str(i) for i in header]
+                fail.write(','.join(header1)+'\n')
                 revert_header(header)
-                fail2.write(','.join(header) + '\n')
+                header1 = [str(i) for i in header]
+                fail2.write(','.join(header1) + '\n')
             else:
                 with open(os.path.abspath('../../')+'stavki_data/match_faults.txt', 'a') as f:
                     f.write('https://scores24.live' + match + '\n')
@@ -166,7 +176,7 @@ def revert_header(header):
 def get_full_match(text,date):
     text=text.replace('\\','/')
     ref = re.search('content="(http.*?)"/',text).group(1)
-    header = match_header(*[0]*len(match_header_names))
+    header = match_header(*[0]*len(full_header))
     header.ref = ref
     header.data = date.year-2018*365+date.month*30+date.day
     header.type = 1
@@ -192,10 +202,10 @@ def get_match_coef(text,header):
     p2 = re.search(r'"type/":/"w2/(.*?)value/":/"(.*?)/"', text)
     if p2:
         header.p2= p2.group(2)
-    t1 = re.search(r'"type/":/"1.5/(.*?)value/":/"(.*?)/"', text)
+    t1 = re.search(r'"type/":/"1.5/(.*?)value/":/"(.*?)/"', text) or re.search(r'"type/":/"1/(.*?)value/":/"(.*?)/"', text) or re.search(r'"type/":/"2/(.*?)value/":/"(.*?)/"', text)
     if t1:
         header.tb1 = t1.group(2)
-    t2 = re.search(r'"type/":/"2/(.*?)value/":/"(.*?)/"', text)
+    t2 = re.search(r'"type/":/"2.5/(.*?)value/":/"(.*?)/"', text) or  re.search(r'"type/":/"3/(.*?)value/":/"(.*?)/"', text) or  re.search(r'"type/":/"3.5/(.*?)value/":/"(.*?)/"', text)
     if t2:
         header.tb2 = t2.group(2)
     oz = re.search(r'"type/":/"yes/(.*?)value/":/"(.*?)/"', text)
@@ -204,7 +214,10 @@ def get_match_coef(text,header):
     x1 = re.search(r'"type/":/"x1/(.*?)value/":/"(.*?)/"', text)
     if x1:
         header.x1 = x1.group(2)
-        header.type+=1
+    x2 = re.search(r'"type/":/"x2/(.*?)value/":/"(.*?)/"', text)
+    if x2:
+        header.x2 = x2.group(2)
+        header.type += 1
 
 
 def get_full_stat(text,header):
@@ -214,7 +227,7 @@ def get_full_stat(text,header):
     if vladenie:
         header.vladenie1 = vladenie[0]
     chisla = re.findall('>(\d+?)<', full_stat_text)
-    if chisla:
+    if len(chisla) ==16:
         if 'Shots on goal' in full_stat_text:
             header.vstvor1, header.mimo1 = chisla[i], chisla[1 + i]
             header.vstvor2, header.mimo2 = chisla[i + 2], chisla[3 + i]
@@ -239,7 +252,6 @@ def get_full_stat(text,header):
             i += 2
         if 'Fouls' in full_stat_text:
             header.fol1, header.fol2 = chisla[i], chisla[1 + i]
-    if i==16:
         header.type+=2
 
 
@@ -347,3 +359,13 @@ def create_prognoz_df(params,ability_header,matches,prognoz):
                     offset = insertdf(last,get_data_by_type(matches.loc[l],4-index%4),offset)
                     used_id.add(l)
 
+
+def proces_run_back(strt,offset):
+    proces=[]
+    for i in range(5):
+        date = strt-datetime.timedelta(days=i*offset)
+        proc = multiprocessing.Process(target=go_stavki_football_back,args=(date,offset,'proc'+str(i)))
+        proces.append(proc)
+        proc.start()
+    for i in proces:
+        i.join()
