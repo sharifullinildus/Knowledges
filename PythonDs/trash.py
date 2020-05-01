@@ -1,6 +1,10 @@
 # coding=utf-8
 import random,os, pandas as pd
 buk = ('q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m')
+asd=pd.DataFrame(columns=[1,2,3])
+
+
+
 
 
 def hash1(str):
@@ -62,40 +66,26 @@ def perestanovki():
     with open('gen_unics','w') as f:
         pass
 
-class asd:
-    def __init__(self):
-        self.z=2
+import datetime, multiprocessing
 
 
-class asd2(asd):
-    def __init__(self):
-        asd.__init__(self)
+def run():
+    now = datetime.datetime.now()
+    qwe=pd.DataFrame(columns=[1,2,3,4,5,6])
+    for i in range(6000):
+        qwe.loc[i]=[5]*6
+    print(datetime.datetime.now()-now)
 
-    class B:
-        def __init__(self):
-            pass
-
-    class C(B):
-        def __init__(self):
-            asd2.B.__init__(self)
-        pass
-
-def create_1type_predict_for_match(header):
-    team1_data = pd.read_csv(os.path.abspath('../../') + '/stavki_data/' + header.country+'/'+header.team1+'type1.csv')
-    team2_data = pd.read_csv(os.path.abspath('../../') + '/stavki_data/' + header.country+'/'+header.team2+'type1.csv')
-    h2h = team1_data[team1_data.team2 == header.team2].head(5)
-    same_teams = set(team1_data.team2) & set(team2_data.team2)
-    bag_of_pars = []
-    bag_of_id = []
-    for game in team1_data[team1_data.team2 in (same_teams)]:
-        game2= team2_data[(team2_data.team2 == game.team2) & (team2_data.id not in bag_of_id)]
-        if game2:
-            game2=game2.iloc[0]
-            bag_of_pars.append((game.id,game2.id,abs(game.data-game2.data)))
-            bag_of_id.append(game2.id)
-    bag_of_pars= sorted(bag_of_pars,key=lambda x:x[-1])[:5]
-    
-
-
-asd =[(1,6,3),(3,4,5)]
-print sorted(asd,key=lambda x:x[1])
+run()
+'''if __name__ == '__main__':
+    pr1=multiprocessing.Process(target=run)
+    pr2=multiprocessing.Process(target=run)
+    pr3 = multiprocessing.Process(target=run)
+    now = datetime.datetime.now()
+    pr1.start()
+    pr2.start()
+    pr3.start()
+    pr1.join()
+    pr2.join()
+    pr3.join()
+    print(datetime.datetime.now() - now)'''
